@@ -1,0 +1,41 @@
+---
+title: "ASSIGNMENT 1"
+author: "RAJEEV VARMA"
+date: "15/09/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#1. Downloaded the dataset from Kaggle
+
+#2. Importing the dataset
+```{r}
+Airline.Passenger.Satisfaction <- read.csv("C:/Users/dell/Desktop/Airline Passenger Satisfaction.csv")
+```
+
+#3 Descriptive statastics
+```{r}
+summary(Airline.Passenger.Satisfaction)
+```
+
+#4 Transformation of Flight Distance
+```{r}
+Airline.Passenger.Satisfaction$Flight.Distance <- (Airline.Passenger.Satisfaction$Flight.Distance - sd (Airline.Passenger.Satisfaction$Flight.Distance)/var(Airline.Passenger.Satisfaction$Flight.Distance))
+Airline.Passenger.Satisfaction$Flight.Distance
+```
+
+#5 Plot one Histogram and Scatterplot
+```{r}
+hist(Airline.Passenger.Satisfaction$Flight.Distance)
+library(ggplot2)
+ggplot(Airline.Passenger.Satisfaction) +
+  aes(
+    x = Flight.Distance,
+    y = Arrival.Delay.in.Minutes
+  ) +
+  geom_point(shape = "circle", size = 1.2, colour = "#112446") +
+  theme_minimal()
+```
