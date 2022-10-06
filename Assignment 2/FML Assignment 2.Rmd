@@ -1,0 +1,120 @@
+---
+title: "FML ASSIGNMENT 2"
+author: "RAJEEV VARMA"
+date: "10/5/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+```{r}
+library('caret')
+library('ISLR')
+library('dplyr')
+library('class')
+```
+
+```{r}
+My_Data <- read.csv("C:/Users/RAJEEV VARMA/Downloads/UniversalBank.csv")
+```
+
+
+```{r}
+#QUESTION-1
+My_Data$ID <- NULL
+My_Data$ZIP.Code <- NULL
+summary(My_Data)
+My_Data$Personal.Loan =  as.factor(My_Data$Personal.Loan)
+```
+
+```{r}
+#Normalizing the data by dividing into Training, Test and validation
+Modelnorm <- preProcess(My_Data[, -8],method = c("center", "scale"))
+summary(My_Data)
+My_Data_Norm <- predict(Modelnorm,My_Data)
+summary(My_Data_Norm)
+
+Index_Train <- createDataPartition(My_Data$Personal.Loan, p = 0.6, list = FALSE)
+Train = My_Data_Norm[Index_Train,]
+validation = My_Data_Norm[-Index_Train,]
+```
+
+```{r}
+#Predicting of data
+library(FNN)
+Prediction = data.frame(Age = 40, Experience = 10, Income = 84, Family = 2,
+                     CCAvg = 2, Education = 1, Mortgage = 0, Securities.Account =
+                       0, CD.Account = 0, Online = 1, CreditCard = 1)
+print(Prediction)
+Predict_Norm <- predict(Modelnorm,Prediction)
+Prediction <- knn(train= as.data.frame(Train[,1:7,9:12]),
+                  test = as.data.frame(Predict_Norm[,1:7,9:12]),
+                  cl= Train$Personal.Loan,
+                  k=1)
+```
+```{r}
+#QUESTION-2
+set.seed(123)
+My_Data <- trainControl(method= "repeatedcv", number = 3, repeats = 2)
+searchGrid = expand.grid(k=1:10)
+knn.model = train(Personal.Loan~., data = Train, method = 'knn', tuneGrid = searchGrid,trControl = My_Data)
+knn.model
+#The value of k is 3, which strikes a compromise between underfitting and overfitting of the data.
+#Accuracy was used to select the optimal model using the largest value for the model was k = 3.
+```
+
+
+```{r}
+#QUESTION-3
+prediction_bank <- predict(knn.model,validation)
+confusionMatrix(prediction_bank,validation$Personal.Loan)
+#This matrix has a 95% accuracy.
+```
+
+
+```{r}
+#QUESTION-4
+Predict_Norm = data.frame(Age = 40, Experience = 10, Income = 84, Family = 2,
+                              CCAvg = 2, Education = 1, Mortgage = 0,
+                              Securities.Account =0, CD.Account = 0, Online = 1,
+                              CreditCard = 1)
+Predict_Norm = predict(Modelnorm, Predict_Norm)
+predict(knn.model, Predict_Norm)
+```
+
+
+```{r}
+#QUESTION-5
+#Creating Training, Test, and validation
+Trainsize = 0.5 #training(50%)
+IndexTrain = createDataPartition(My_Data_Norm$Personal.Loan, p = 0.5, list = FALSE)
+Train = My_Data_Norm[IndexTrain,]
+
+validsize = 0.3 #validation(30%)
+IndexValidation = createDataPartition(My_Data_Norm$Personal.Loan, p = 0.3, list = FALSE)
+validation = My_Data_Norm[IndexValidation,]
+
+Testsize = 0.2 #Test Data(20%)
+IndexTest = createDataPartition(My_Data_Norm$Personal.Loan, p = 0.2, list = FALSE)
+Test = My_Data_Norm[IndexTest,]
+
+
+Trainingknn <- knn(train = Train[,-8], test = Train[,-8], cl = Train[,8], k =3)
+Validknn <- knn(train = Train[,-8], test = validation[,-8], cl = Train[,8], k =3)
+Testingknn <- knn(train = Train[,-8], test = Test[,-8], cl = Train[,8], k =3)
+
+TrainPredictors<-Train[,9:12] 
+TestPredictors<-Test[,9:12]
+
+Trainlabels <-Train[,8]
+Testlabels  <-Test[,8]
+
+PredictedTestlabels <-knn(TrainPredictors, 
+                            TestPredictors, 
+                            cl=Trainlabels, 
+                            k=3 )
+
+confusionMatrix(Trainingknn, Train[,8])
+confusionMatrix(Validknn, validation[,8])
+confusionMatrix(Testingknn, Test[,8])
+```
