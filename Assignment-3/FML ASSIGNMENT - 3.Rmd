@@ -1,0 +1,104 @@
+---
+title: "Assignment 3"
+author: "RAJEEV VARMA"
+date: "2022-10-25"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+```{r}
+#Importing the dataset
+Univ_Bank <- read.csv("C:/Users/RAJEEV VARMA/Downloads/UniversalBank.csv")
+```
+
+```{r}
+#Converting the predictor attributes to factors
+Univ_Bank$Online <- as.factor(Univ_Bank$Online)
+Univ_Bank$CreditCard <- as.factor(Univ_Bank$CreditCard)
+Univ_Bank$Personal.Loan <- as.factor(Univ_Bank$Personal.Loan)
+```
+
+```{r}
+#Checking for NULL VALUES and loading packages
+sum(is.na(Univ_Bank))
+library(class)
+library(caret)
+library(e1071)
+library(dplyr)
+library(ggplot2)
+library(reshape)
+library(melt)
+library(ISLR)
+library(reshape2)
+library(readr)
+library(naivebayes)
+library(pROC)
+```
+```{r}
+#Data Partition to 60:40
+set.seed(123)
+datapart <- createDataPartition(Univ_Bank$Personal.Loan,p=.6, list=F)
+Train <- Univ_Bank[datapart,]
+Validate <- Univ_Bank[-datapart,]
+```
+
+```{r}
+#Data Normalization
+ModelNorm <- preProcess(Train[,-c(10,13:14)], 
+                method=c("center","scale"))
+Trainnorm <- predict(ModelNorm,Train)
+Validatenorm <- predict(ModelNorm,Validate)
+```
+
+#A)
+```{r}
+tab1<- ftable(Trainnorm[,c(14,10,13)])
+tab1
+```
+#B) 51/(51+467) = 0.0984.
+
+#C) 
+```{r}
+melt = melt(Train, id=c("CreditCard","Personal.Loan"), variable = "Online")  
+castbank = dcast(melt, CreditCard+Personal.Loan~Online) 
+castbank[,c(1:2,14)] 
+```
+
+#D)
+```{r}
+ftable(Trainnorm[,c(10,13)])
+ftable(Trainnorm[,c(10,14)])
+ftable(Trainnorm[,10])
+
+#1. P(CC = 1 | Loan = 1) = (84/84+204) = 0.291
+#2. P(Online = 1 | Loan = 1)  = (176/176+112) = 0.611
+#3. P(Loan = 1) = (288/288+2712) = 0.096
+#4. P(CC = 1 | Loan = 0) = (777/777+1935) = 0.286
+#5. P(Online = 1 | Loan = 0) = (1611/ 1611+1101) = 0.595
+#6. P(Loan = 0) = (2712/ 2712+288) = 0.904
+```
+#E)
+```{r}
+#Computing the naive bayes probability:
+#(0.291 x 0.611 x 0.096) / (0.271 x 0.611 x 0.096) + (0.286 x 0.595 x 0.904) = 0.1000
+```
+
+#F) Although Naive Bayes has a higher probability than that with the direct calculation, the value obtained in step b, which is 0.0984, and the value obtained in step a, which is 0.1000, are almost similar.
+
+#G) 
+```{r}
+naive_bayes <- naive_bayes(Personal.Loan~Online+CreditCard,data=Trainnorm)
+naive_bayes
+#The Naive Bayes Model produces a result of 0.1000, which is equivalent to the result in E, when it is run for the consumer applying for the loan, paying with a credit card, and utilizing online banking
+```
+```{r}
+#Examining the AUC value and ROC curve
+Naive <- naiveBayes(Personal.Loan~Online+CreditCard,data=Trainnorm)
+Naive
+
+predlab <- predict(Naive,Validatenorm,type = "raw")
+head(predlab)
+roc(Validatenorm$Online,predlab[,2])
+plot.roc(Validatenorm$Online,predlab[,2])
+```
