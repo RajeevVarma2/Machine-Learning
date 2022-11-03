@@ -1,0 +1,110 @@
+---
+title: "FML Assignment-4"
+author: "RAJEEV VARMA"
+date: "2022-11-03"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+My_Pharmaceuticals <-  read.csv("C:/Users/RAJEEV VARMA/Downloads/Pharmaceuticals.csv")
+summary(My_Pharmaceuticals)
+str(My_Pharmaceuticals)
+
+library(tidyverse)
+library(cluster)
+library(gridExtra)
+library(readr)
+library(dplyr)
+library(caret)
+library(factoextra)
+```
+
+```{r}
+#a)
+#Removing Null Values and selecting the Numercial variables.
+colSums(is.na(My_Pharmaceuticals))
+row.names(My_Pharmaceuticals)<- My_Pharmaceuticals[,1]
+My_Pharmaceuticals.data.num<- My_Pharmaceuticals[, 3:11]
+head(My_Pharmaceuticals.data.num)
+
+# Scaling and Normalizing the dataset
+My_Pharmaceuticals.scale <- scale(My_Pharmaceuticals.data.num)
+head(My_Pharmaceuticals.scale)
+normal.data <- as.data.frame(scale(My_Pharmaceuticals.data.num))
+
+#Computing K-means clustering  for different centers 
+kmeans.1 <- kmeans(My_Pharmaceuticals.scale, centers = 2, nstart = 30)
+kmeans.2<- kmeans(My_Pharmaceuticals.scale, centers = 5, nstart = 30)
+kmeans.3<- kmeans(My_Pharmaceuticals.scale, centers = 6, nstart = 30)
+Plot.1<-fviz_cluster(kmeans.1, data = My_Pharmaceuticals.scale)+ggtitle("k=2")
+plot.2<-fviz_cluster(kmeans.2, data = My_Pharmaceuticals.scale)+ggtitle("k=5")
+plot.3<-fviz_cluster(kmeans.3, data = My_Pharmaceuticals.scale)+ggtitle("k=6")
+grid.arrange(Plot.1,plot.2,plot.3, nrow = 3)
+
+distance<- dist(My_Pharmaceuticals.scale, method = "euclidean")
+fviz_dist(distance)
+
+# Estimate the  number of clusters(Elbow Method is used for scaling the data to determine the value of k)
+fviz_nbclust(normal.data, FUNcluster = kmeans, method = "wss") + labs(subtitle = "Elbow Method")
+
+# Silhouette Method is used  to determine total number of clusters
+fviz_nbclust(normal.data,FUNcluster = kmeans,method = "silhouette")+labs(subtitle="Silhouette Method")
+
+# Final analysis and Extracting the results using 5 clusters and Visualizing the results
+set.seed(300)
+final.Cluster<- kmeans(My_Pharmaceuticals.scale, 5, nstart = 25)
+print(final.Cluster)
+clusplot(My_Pharmaceuticals.scale,final.Cluster$cluster, color = TRUE, labels = 2,lines = 0)
+```
+
+```{r}
+#b)
+#Cluster 1 - AHM,SGP,WYE,BMY,AZN, ABT, NVS, LLY 
+#Lowest Market.Cap,highest Beta,lowest PE.Ratio,highest Leverage,highest Rev.Growth.
+
+#Cluster 2 - BAY, CHTT, IVX 
+#Lowest Rev.Growth,highest Net.Profit.Margin
+
+#Cluster 3 - WPI, MRX,ELN,AVE 
+#Highest PE.Ratio,lowest.ROE,lowest ROA,lowest Net.Profit.Margin
+
+#Cluster 4 - AGN, PHA 
+#Lowest Beta,lowest Asset.Turnover
+
+#Cluster 5 - JNJ, MRK, PFE,GSK 
+#Highest Market.Cap and lowest Beta/PE Ratio
+
+My_Pharmaceuticals.Cluster <- My_Pharmaceuticals[,c(12,13,14)]%>% mutate(clusters = final.Cluster$cluster)%>% arrange(clusters, ascending = TRUE)
+My_Pharmaceuticals.Cluster
+```
+
+
+```{r}
+#c)
+plot1<-ggplot(My_Pharmaceuticals.Cluster, mapping = aes(factor(clusters), fill=Median_Recommendation))+geom_bar(position = 'dodge')+labs(x ='No of clusters')
+plot2<- ggplot(My_Pharmaceuticals.Cluster, mapping = aes(factor(clusters),fill = Location))+geom_bar(position = 'dodge')+labs(x ='No of clusters')
+plot3<- ggplot(My_Pharmaceuticals.Cluster, mapping = aes(factor(clusters),fill = Exchange))+geom_bar(position = 'dodge')+labs(x ='No of clusters')
+grid.arrange(plot1, plot2, plot3)  
+```
+#As per graph:- 
+
+#Cluster 1 :The Hold median is highest in this cluster,It also contains separate Hold, Moderate Buy, Moderate Sell, and Strong Buy medians. They are listed on the NYSE and they come from the US, UK, and Switzerland.
+
+#Cluster 2: Even though the firms are evenly divided throughout AMEX, NASDAQ, and NYSE,  has a distinct Hold and Moderate Buy median, as well as a different count between the US and Germany.
+
+#Cluster 3: It is listed on the NYSE, has separate counts for France, Ireland, and the US, and has equal moderate buy and sell medians.
+
+#Cluster 4: It dispersed throughout the US and UK, as well as being listed in, has the identical hold and moderate buy medians
+
+#Cluster 5: solely listed on the NYSE, equally dispersed in the US and Canada, with Hold and Moderate Buy medians.
+
+
+```{r}
+#d)
+#Cluster1-Hold Cluster
+#Cluster2-Hold Cluster
+#Cluster3-Buy-Sell Cluster
+#Cluster4-Hold-Buy Cluster
+#Cluster5-Hold-Buy Cluster
+```
