@@ -1,0 +1,155 @@
+---
+title: "Assignment 5"
+author: "RAJEEV VARMA"
+date: "2022-12-01"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+```{r}
+#Importing required libraries and packages
+library(cluster)
+library(caret)
+library(dendextend)
+library(knitr)
+library(factoextra)
+library(readr)
+```
+
+
+```{r}
+#Importing dataset and creating data set with only numeric data
+Cereals <- read.csv("C:/Users/RAJEEV VARMA/Downloads/Cereals.csv")
+Num_data <- data.frame(Cereals[,4:16])
+
+#Omitting missing values from the data
+Num_data <- na.omit(Num_data)
+
+#Normalizing the data
+Cereals_norm <- scale(Num_data)
+```
+
+
+```{r}
+#Applying hierarchical clustering using Euclidean distance method.
+Distance <- dist(Cereals_norm, method = "euclidean")
+Hier_Clustering <- hclust(Distance, method = "complete")
+
+#Plotting of the dendogram.
+plot(Hier_Clustering, cex = 0.7, hang = -1)
+```
+
+
+```{r}
+#Using Agnes function to perform clustering with single, complete, average and ward linkages
+
+Hier_Clust_single <- agnes(Cereals_norm, method = "single")
+Hier_Clust_complete <- agnes(Cereals_norm, method = "complete")
+Hier_Clust_average <- agnes(Cereals_norm, method = "average")
+Hier_Clust_ward <- agnes(Cereals_norm, method = "ward")
+
+print(Hier_Clust_single$ac)
+print(Hier_Clust_complete$ac)
+print(Hier_Clust_average$ac)
+print(Hier_Clust_ward$ac)
+
+#From the data it is shown that the ward method is best as it has the value of 0.9046042.
+```
+
+
+```{r}
+pltree(Hier_Clust_ward, cex = 0.5, hang = -1, main = "Dendrogram of agnes")
+rect.hclust(Hier_Clust_ward, k = 5, border = 2:7)
+
+SubGrp <- cutree(Hier_Clust_ward, k=5)
+df <- as.data.frame(cbind(Cereals_norm,SubGrp))
+fviz_cluster(list(data = df, cluster = SubGrp))
+
+#From the above results, 5 clusters can be selected. 
+```
+
+
+```{r}
+#Creating Partitions
+set.seed(123)
+Part1 <- Num_data[1:50,]
+Part2 <- Num_data[51:74,]
+```
+
+
+```{r}
+#Performing Hierarchial Clustering,consedering k = 5.
+AG_single <- agnes(scale(Part1), method = "single")
+AG_complete <- agnes(scale(Part1), method = "complete")
+AG_average <- agnes(scale(Part1), method = "average")
+AG_ward <- agnes(scale(Part1), method = "ward")
+
+cbind(single=AG_single$ac , complete=AG_complete$ac , average= AG_average$ac , ward= AG_ward$ac)
+
+pltree(AG_ward, cex = 0.6, hang = -1, main = "Dendogram of Agnes with Partitioned Data")
+
+rect.hclust(AG_ward, k = 5, border = 2:7)
+cut <- cutree(AG_ward, k = 5)
+```
+
+
+```{r}
+#Calculating the centroids.
+Res <- as.data.frame(cbind(Part1, cut))
+Res[Res$cut==1,]
+
+cent_1 <- colMeans(Res[Res$cut==1,])
+Res[Res$cut==2,]
+
+cent_2 <- colMeans(Res[Res$cut==2,])
+Res[Res$cut==3,]
+
+cent_3 <- colMeans(Res[Res$cut==3,])
+Res[Res$cut==4,]
+
+cent_4 <- colMeans(Res[Res$cut==4,])
+centroids <- rbind(cent_1, cent_2, cent_3, cent_4)
+x2 <- as.data.frame(rbind(centroids[,-14], Part2))
+```
+
+
+```{r}
+#Calculating the Distance.
+
+Dist1 <- get_dist(x2)
+Matrix1 <- as.matrix(Dist1)
+df1 <- data.frame(data=seq(1,nrow(Part2),1), Clusters = rep(0,nrow(Part2)))
+
+for(i in 1:nrow(Part2)) 
+  {df1[i,2] <- which.min(Matrix1[i+4, 1:4])}
+df1
+
+cbind(df$SubGrp[51:74], df1$Clusters)
+table(df$SubGrp[51:74] == df1$Clusters)
+
+#From the above results, we are getting 12 False and 12 True. So, we can tell that the model is partially stable.
+```
+
+
+```{r}
+#Clustering Healthy Cereals.
+Healthy.Cereals <- Cereals
+Healthy.Cereals_na <- na.omit(Healthy.Cereals)
+Clusthealthy <- cbind(Healthy.Cereals_na, SubGrp)
+Clusthealthy[Clusthealthy$SubGrp==1,]
+Clusthealthy[Clusthealthy$SubGrp==2,]
+Clusthealthy[Clusthealthy$SubGrp==3,]
+Clusthealthy[Clusthealthy$SubGrp==4,]
+
+#Mean ratings to determine the best cluster.
+mean(Clusthealthy[Clusthealthy$SubGrp==1,"rating"])
+mean(Clusthealthy[Clusthealthy$SubGrp==2,"rating"])
+mean(Clusthealthy[Clusthealthy$SubGrp==3,"rating"])
+mean(Clusthealthy[Clusthealthy$SubGrp==4,"rating"])
+
+
+#From the above results, the cluster 1 can choose as it is the highest.
+#So, Cluster 1 can be considered as healthy cluster.
+```
+
