@@ -1,0 +1,188 @@
+---
+title: "FML Final Project"
+author: "RAJEEV VARMA"
+date: "2022-12-13"
+output: html_document
+---
+```{r}
+Titanic_Train <- read.csv("C:/Users/braje/Downloads/train.csv")
+```
+
+```{r}
+library(ggplot2)
+library(gmodels)
+library(pROC)
+library(PreProcess)
+library(ISLR)
+library(glmnet)
+library(rpart.plot)
+library(oompaBase)
+library(rpart)
+library(caret)
+library(ConfusionTableR)
+```
+
+
+```{r}
+summary(Titanic_Train)
+```
+
+```{r}
+str(Titanic_Train)
+```
+
+```{r}
+
+Survived_count<-table(Titanic_Train$Survived)
+Survived_count
+barplot(Survived_count, xlab = "Survived", ylab = "count", col="light blue", main ="No.of Passengers survived" )
+```
+
+```{r}
+prop.table(table(Titanic_Train$Survived))
+table(Titanic_Train$Sex,Titanic_Train$Survived)
+```
+
+#Finding and handling missing values
+```{r}
+dim(Titanic_Train)
+sum(is.na(Titanic_Train))
+```
+
+```{r}
+Titanic_Train<-Titanic_Train[complete.cases(Titanic_Train),]
+dim(Titanic_Train)
+```
+
+```{r}
+Titanic_Train$Name <-NULL
+Titanic_Train$Ticket<-NULL
+Titanic_Train$Cabin <- NULL
+Titanic_Train
+```
+
+```{r}
+Titanic_Train$Survived = factor(Titanic_Train$Survived)
+Titanic_Train$Pclass = factor(Titanic_Train$Pclass, order=TRUE, levels = c(3, 2, 1))
+Titanic_Train$Embarked = factor(Titanic_Train$Embarked, order=TRUE)
+```
+
+
+```{r}
+
+ggplot(Titanic_Train, aes(x = Survived)) +
+  geom_bar(width=0.5, fill = "yellow") +
+  geom_text(stat='count', aes(label=stat(count)), vjust=-0.5) +
+  theme_classic()
+```
+
+```{r}
+ggplot(Titanic_Train, aes(x = Survived, fill=Sex)) +
+ geom_bar(position = "position_dodge"()) +
+ geom_text(stat="count",
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.5)+
+scale_fill_manual(values = c("#00FF00", "#0000FF"))
+
+
+```           
+         
+           
+```{r}
+ggplot(Titanic_Train, aes(x = Survived, fill=Pclass)) +
+ geom_bar(position = "position_dodge"()) +
+ geom_text(stat="count", 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), 
+           vjust=-0.5)+
+scale_fill_manual(values = c("#FF0000", "#0000FF","#00FF00"))
+```
+
+```{r}
+str(Titanic_Train)
+```
+#Encoding cat data
+```{r}
+levels(Titanic_Train$Survived)
+```
+
+```{r}
+
+dummy_model <- dummyVars(~. ,data = Titanic_Train)
+head(predict(dummy_model, Titanic_Train))
+```
+
+```{r}
+Model_Norm <- preProcess(Titanic_Train, method = c("center", "scale"))
+Titanic_Train_Norm <-predict(Model_Norm, Titanic_Train)
+summary(Titanic_Train_Norm)
+```
+
+```{r}
+set.seed(123)
+Index<- createDataPartition(Titanic_Train_Norm$Survived,p=0.75,list=FALSE)
+Train<-Titanic_Train_Norm[Index,]
+Validation <- Titanic_Train_Norm[-Index,]
+```
+
+```{r}
+#Building a Decision Tree Model
+set.seed(123)
+
+Decision_Tree_Model<- rpart(Survived ~ .,data=Train,method = 'class') 
+head(Decision_Tree_Model$splits)
+```
+
+```{r}
+#Predicting the probability
+Prob_Decision_Tree <- predict(Decision_Tree_Model, newdata = Validation, type = "prob")
+```
+
+
+```{r}
+set.seed(123)
+Class_Decision_Tree <- predict(Decision_Tree_Model, newdata = Validation, type = "class")
+confusionMatrix(as.factor(Class_Decision_Tree),as.factor(Validation$Survived))
+```
+
+```{r}
+set.seed(123)
+Titanic_Train_Model<- rpart(Survived ~ .,data= Titanic_Train,method = 'class')
+```
+
+```{r}
+#Determining the Model Splits.
+head(Titanic_Train_Model$splits)
+```
+
+
+```{r}
+#Plotting Decision Tree
+rpart.plot(Titanic_Train_Model, cex=0.5)
+```
+
+```{r}
+# Logistic Regression Model
+logit1<- glm(Survived ~ ., family = binomial("logit") ,data=Train)
+summary(logit1)
+
+logit2<- glm(Survived ~ ., family = binomial("logit") ,data=Train)
+summary(logit2)
+```
+
+```{r}
+#predicting on validation data
+Predicted<- predict(logit2,Validation, type="response")
+head(Predicted)
+
+Predicted_class<-ifelse(Predicted>= 0.5,1,0)
+head(Predicted_class)
+```
+
+
+```{r}
+#confusion Matrix
+set.seed(123)
+Logistic_Confusionmatrix <- confusionMatrix(as.factor(Predicted_class),as.factor(Validation$Survived))
+Logistic_Confusionmatrix
+```
